@@ -3,495 +3,475 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading Journal PWA</title>
+    <title>TuDashboard - Trading Journal Advanced</title>
     
-    <meta name="theme-color" content="#0b0f19">
+    <meta name="theme-color" content="#0a0e27">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Trading Journal">
+    <meta name="apple-mobile-web-app-title" content="TuDashboard">
     
     <link rel="manifest" id="pwa-manifest">
-
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%230a0e27' width='180' height='180'/><text x='90' y='110' font-size='80' font-weight='bold' fill='%2300ff88' text-anchor='middle' font-family='monospace'>📊</text></svg>">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    
     <style>
-        body { background-color: #0b0f19; color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; }
-        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #0f172a; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        * { box-sizing: border-box; }
+        body { background: linear-gradient(135deg, #0a0e27 0%, #0f1535 100%); color: #e2e8f0; font-family: 'Courier New', monospace; }
+        .sidebar { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border-right: 1px solid rgba(71, 85, 105, 0.3); }
+        .main-content { background: linear-gradient(135deg, #0a0e27 0%, #0f1535 100%); }
+        .card { background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(71, 85, 105, 0.2); backdrop-filter: blur(10px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+        .stat-box { background: rgba(15, 23, 42, 0.8); border-left: 4px solid #00ff88; padding: 15px; border-radius: 8px; }
+        .stat-value { font-size: 28px; font-weight: bold; color: #00ff88; font-family: 'Courier New', monospace; }
+        .stat-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
+        .sidebar-item { padding: 12px 16px; margin: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.3s; font-size: 13px; }
+        .sidebar-item:hover { background: rgba(71, 85, 105, 0.2); border-left: 3px solid #00ff88; }
+        .sidebar-item.active { background: rgba(0, 255, 136, 0.1); color: #00ff88; border-left: 3px solid #00ff88; }
+        .trade-row { background: rgba(15, 23, 42, 0.5); border-bottom: 1px solid rgba(71, 85, 105, 0.1); padding: 12px; transition: all 0.2s; }
+        .trade-row:hover { background: rgba(71, 85, 105, 0.1); }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .badge-win { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-loss { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-be { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .section-title { font-size: 14px; font-weight: bold; color: #00ff88; text-transform: uppercase; letter-spacing: 2px; margin-top: 24px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid rgba(0, 255, 136, 0.3); }
+        canvas { max-height: 250px; }
+        .emotion-tag { display: inline-block; background: rgba(71, 85, 105, 0.3); border: 1px solid rgba(71, 85, 105, 0.5); border-radius: 20px; padding: 6px 14px; margin: 4px; font-size: 12px; }
+        .emotion-tag.selected { background: rgba(0, 255, 136, 0.2); border-color: #00ff88; color: #00ff88; }
+        .scrollbar::-webkit-scrollbar { width: 6px; }
+        .scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar::-webkit-scrollbar-thumb { background: rgba(71, 85, 105, 0.4); border-radius: 3px; }
+        .scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 0.6); }
+        .trading-form-input { background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(71, 85, 105, 0.3); color: #e2e8f0; padding: 10px; border-radius: 6px; font-family: 'Courier New', monospace; }
+        .trading-form-input:focus { outline: none; border-color: #00ff88; box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1); }
     </style>
 </head>
-<body class="p-4 md:p-8 custom-scroll">
-
-    <div class="max-w-7xl mx-auto space-y-6">
+<body class="overflow-hidden">
+    <div class="flex h-screen bg-gradient-to-br from-slate-950 to-slate-900">
         
-        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-5 gap-4">
-            <div>
-                <h1 class="text-2xl font-black text-indigo-400 tracking-wider uppercase">Advanced Trading Journal PWA</h1>
-                <p class="text-slate-400 text-xs mt-1">Precisión algorítmica y métricas de confluencias. Instalable en tu sistema.</p>
-            </div>
-            <div class="flex items-center gap-3">
-                <button id="btn-install-pwa" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-2 rounded-lg transition-all cursor-pointer shadow-md">
-                    📥 Instalar App
-                </button>
-                <div class="text-xs bg-slate-900 px-4 py-2 rounded-lg border border-slate-800 text-slate-400">
-                    Fecha: <span id="current-date-display" class="font-bold text-indigo-300"></span>
+        <!-- SIDEBAR -->
+        <div class="sidebar w-56 flex flex-col border-r border-slate-800 overflow-y-auto scrollbar">
+            <div class="p-5 border-b border-slate-800">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-emerald-500 flex items-center justify-center font-bold text-slate-900">📊</div>
+                    <div>
+                        <div class="font-bold text-sm">TuDashboard</div>
+                        <div class="text-xs text-slate-500">Trading Metrics</div>
+                    </div>
                 </div>
             </div>
-        </header>
-
-        <section class="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div class="bg-slate-900/60 border border-slate-800/80 p-4 rounded-xl shadow-sm">
-                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Total Trades</p>
-                <p id="stat-total" class="text-2xl font-extrabold mt-1 text-white">0</p>
-            </div>
-            <div class="bg-emerald-950/20 border border-emerald-900/60 p-4 rounded-xl shadow-sm">
-                <p class="text-[10px] text-emerald-400 uppercase font-bold tracking-wider">Ganados</p>
-                <p id="stat-wins" class="text-2xl font-extrabold mt-1 text-emerald-400">0</p>
-            </div>
-            <div class="bg-rose-950/20 border border-rose-900/60 p-4 rounded-xl shadow-sm">
-                <p class="text-[10px] text-rose-400 uppercase font-bold tracking-wider">Perdidos</p>
-                <p id="stat-losses" class="text-2xl font-extrabold mt-1 text-rose-400">0</p>
-            </div>
-            <div class="bg-blue-950/30 border border-blue-900/50 p-4 rounded-xl shadow-sm">
-                <p class="text-[10px] text-blue-400 uppercase font-bold tracking-wider">Breakeven (Trade 0)</p>
-                <p id="stat-be" class="text-2xl font-extrabold mt-1 text-blue-400">0</p>
-            </div>
-            <div class="bg-slate-900/60 border border-slate-800/80 p-4 rounded-xl shadow-sm col-span-2 md:col-span-1">
-                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Win Rate</p>
-                <p id="stat-wr" class="text-2xl font-extrabold mt-1 text-indigo-400">0%</p>
-            </div>
-        </section>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-xl h-fit">
-                <h2 id="form-title" class="text-base font-bold text-white mb-4 flex justify-between items-center">
-                    <span>Registrar Operación</span>
-                    <button id="btn-cancel-edit" class="hidden text-[10px] bg-rose-600 hover:bg-rose-700 text-white font-bold px-2 py-1 rounded transition-all cursor-pointer" onclick="cancelarEdicion()">Cancelar Edición</button>
-                </h2>
-                <form id="trade-form" onsubmit="guardarTrade(event)" class="space-y-4">
-                    <input type="hidden" id="trade-id">
-                    
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Fecha</label>
-                        <input type="date" id="trade-date" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors">
-                    </div>
-
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Activo</label>
-                        <select id="trade-asset" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors">
-                            <option value="NQ">Nasdaq (NQ)</option>
-                            <option value="ES">S&P 500 (ES)</option>
-                            <option value="Ambos">Ambos Activos (NQ/ES)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Resultado (R:R obtenido)</label>
-                        <input type="number" step="0.01" id="trade-result" required placeholder="Ej: 2.5, -1 o 0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors">
-                        <span class="text-[10px] text-slate-500 mt-1 block">Poner 0 contará en las estadísticas y gráficos como Breakeven de forma estricta.</span>
-                    </div>
-
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Confluencias Estratégicas</label>
-                        <div id="confluencias-checkboxes" class="space-y-2.5 max-h-56 overflow-y-auto custom-scroll border border-slate-800 p-2 rounded-lg bg-slate-950">
-                            </div>
-                    </div>
-
-                    <button type="submit" id="btn-submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm p-2.5 rounded-lg transition-colors cursor-pointer shadow-md">
-                        Guardar Operación
-                    </button>
-                </form>
+            <div class="flex-1 p-4 overflow-y-auto scrollbar">
+                <div class="section-title text-xs mb-3">OVERVIEW</div>
+                <div class="sidebar-item active">📊 Dashboard</div>
+                <div class="sidebar-item">📈 Reports</div>
+                
+                <div class="section-title text-xs mb-3">MERCADOS</div>
+                <div class="sidebar-item">📍 Calendario</div>
+                <div class="sidebar-item">📋 Diario de Trading</div>
+                
+                <div class="section-title text-xs mb-3">CUENTAS</div>
+                <div class="sidebar-item">🏦 Gestión de Cuentas</div>
+                
+                <div class="section-title text-xs mb-3">ANALÍTICA</div>
+                <div class="sidebar-item">📊 Rendimiento</div>
+                <div class="sidebar-item">💰 Ventajas Histórico</div>
+                <div class="sidebar-item">📈 Sesiones</div>
+                <div class="sidebar-item">🎯 Estrategias</div>
+                <div class="sidebar-item">🧠 Psicología</div>
+                <div class="sidebar-item">📍 Mapas de Calor</div>
+                <div class="sidebar-item">📊 Pips & RR</div>
+                
+                <div class="section-title text-xs mb-3">CONFIGURACIÓN</div>
+                <div class="sidebar-item">⚙️ Opciones IA</div>
             </div>
-
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-xl lg:col-span-2 flex flex-col justify-between">
-                <div>
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-base font-bold text-white">Calendario Operativo Real</h2>
-                        <div class="flex items-center gap-3">
-                            <span id="calendar-month-year" class="font-bold text-sm text-indigo-400 uppercase tracking-wide"></span>
-                            <div class="flex gap-1">
-                                <button onclick="cambiarMes(-1)" class="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-white text-xs transition-colors cursor-pointer">&larr;</button>
-                                <button onclick="cambiarMes(1)" class="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-white text-xs transition-colors cursor-pointer">&rarr;</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-7 gap-1.5 text-center text-[10px] font-bold text-slate-500 uppercase mb-2">
-                        <div>Dom</div><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div>
-                    </div>
-
-                    <div id="calendar-grid" class="grid grid-cols-7 gap-1.5">
-                        </div>
-                </div>
-
-                <div class="mt-4 pt-4 border-t border-slate-800 text-[10px] text-slate-500 flex flex-wrap gap-4 justify-center">
-                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span> Ganador</div>
-                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-rose-500 rounded-full inline-block"></span> Perdedor</div>
-                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-blue-500 rounded-full inline-block"></span> Breakeven (0 R)</div>
-                </div>
-            </div>
-
         </div>
 
-        <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                <h2 class="text-base font-bold text-white">Historial Técnico de Trades</h2>
-                <div class="w-full sm:w-auto">
-                    <select id="filter-confluencia" onchange="renderGlobal()" class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 focus:outline-none w-full sm:w-64">
-                        <option value="">Filtrar por Confluencia (Todas)</option>
-                    </select>
+        <!-- MAIN CONTENT -->
+        <div class="main-content flex-1 overflow-y-auto scrollbar">
+            <div class="p-6">
+                <!-- HEADER -->
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-1">DASHBOARD</h1>
+                        <p class="text-slate-400 text-sm">Precisión algorítmica y métricas de confluencias</p>
+                    </div>
+                    <div class="flex gap-3 items-center">
+                        <button onclick="toggleAddTrade()" class="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-4 py-2 rounded-lg font-bold text-sm transition-all">
+                            ➕ Nuevo Trade
+                        </button>
+                        <button id="btn-install-pwa" class="hidden bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-bold text-sm">
+                            📥 Instalar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- METRICS ROW 1 -->
+                <div class="grid grid-cols-5 gap-3 mb-6">
+                    <div class="stat-box">
+                        <div class="stat-label">Total Operaciones</div>
+                        <div class="stat-value" id="total-trades">33</div>
+                        <div class="text-xs text-slate-500 mt-2">Trades cerrados</div>
+                    </div>
+                    <div class="stat-box border-l-cyan-500">
+                        <div class="stat-label">Tasa de Cambio</div>
+                        <div class="stat-value text-cyan-400" id="win-rate">33.3%</div>
+                        <div class="text-xs text-slate-500 mt-2">+1.0%</div>
+                    </div>
+                    <div class="stat-box border-l-emerald-500">
+                        <div class="stat-label">Factor de Ganancia</div>
+                        <div class="stat-value text-emerald-400" id="factor-ganancia">1.00</div>
+                        <div class="text-xs text-slate-500 mt-2">Ratio W/L</div>
+                    </div>
+                    <div class="stat-box border-l-red-500">
+                        <div class="stat-label">Beneficio Neto</div>
+                        <div class="stat-value text-red-400" id="net-profit">0.0%</div>
+                        <div class="text-xs text-slate-500 mt-2">-1.0%</div>
+                    </div>
+                    <div class="stat-box border-l-orange-500">
+                        <div class="stat-label">Máx Racha Positiva</div>
+                        <div class="stat-value text-orange-400" id="max-streak">1.33 R</div>
+                        <div class="text-xs text-slate-500 mt-2">Mejor resultado</div>
+                    </div>
+                </div>
+
+                <!-- CHARTS ROW -->
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <!-- EQUITY CURVE -->
+                    <div class="card p-5 rounded-lg">
+                        <h3 class="section-title text-sm mb-4 mt-0">CURVA DE EQUITY</h3>
+                        <canvas id="equityChart"></canvas>
+                    </div>
+
+                    <!-- DISTRIBUTION PIE -->
+                    <div class="card p-5 rounded-lg">
+                        <h3 class="section-title text-sm mb-4 mt-0">DISTRIBUCIÓN</h3>
+                        <div class="flex justify-center">
+                            <canvas id="distributionChart" style="max-width: 200px; max-height: 200px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STRATEGIES & EMOTIONS ROW -->
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <!-- RESUMEN ESTRATEGIAS -->
+                    <div class="card p-5 rounded-lg">
+                        <h3 class="section-title text-sm mb-4 mt-0">RESUMEN DE ESTRATEGIAS</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center py-2 border-b border-slate-800">
+                                <span class="text-sm">Continuación</span>
+                                <div class="flex gap-2 items-center">
+                                    <span class="text-emerald-400 font-bold">2 eps</span>
+                                    <span class="text-slate-600 text-xs">5%</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b border-slate-800">
+                                <span class="text-sm">Reversión</span>
+                                <div class="flex gap-2 items-center">
+                                    <span class="text-red-400 font-bold">1 eps</span>
+                                    <span class="text-slate-600 text-xs">3%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RESUMEN EMOCIONAL -->
+                    <div class="card p-5 rounded-lg">
+                        <h3 class="section-title text-sm mb-4 mt-0">RESUMEN EMOCIONAL</h3>
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm">Confianza</span>
+                                <span class="text-emerald-400 font-bold text-sm">1 eps</span>
+                                <span class="text-slate-600 text-xs">3%</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm">Disciplina</span>
+                                <span class="text-emerald-400 font-bold text-sm">1 eps</span>
+                                <span class="text-slate-600 text-xs">3%</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm">FOMO</span>
+                                <span class="text-red-400 font-bold text-sm">1 eps</span>
+                                <span class="text-slate-600 text-xs">3%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ULTIMAS OPERACIONES -->
+                <div class="card p-5 rounded-lg">
+                    <h3 class="section-title text-sm mb-4 mt-0">ÚLTIMAS OPERACIONES</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-700 text-slate-400">
+                                    <th class="text-left py-2">FECHA</th>
+                                    <th class="text-left py-2">ACTIVO</th>
+                                    <th class="text-left py-2">DIRECCIÓN</th>
+                                    <th class="text-left py-2">ESTRATEGIA</th>
+                                    <th class="text-left py-2">RESULTADO</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trades-list">
+                                <tr class="trade-row">
+                                    <td class="py-3">2026-06-09</td>
+                                    <td><span class="font-mono bg-slate-800 px-2 py-1 rounded text-cyan-400">NASDAQ</span></td>
+                                    <td><span class="font-bold text-emerald-400">Compra</span></td>
+                                    <td>Continuación</td>
+                                    <td><span class="badge badge-win">+1.8%</span></td>
+                                </tr>
+                                <tr class="trade-row">
+                                    <td class="py-3">2026-06-09</td>
+                                    <td><span class="font-mono bg-slate-800 px-2 py-1 rounded text-cyan-400">NASDAQ</span></td>
+                                    <td><span class="font-bold text-red-400">Venta</span></td>
+                                    <td>Continuación</td>
+                                    <td><span class="badge badge-loss">0.8%</span></td>
+                                </tr>
+                                <tr class="trade-row">
+                                    <td class="py-3">2026-06-08</td>
+                                    <td><span class="font-mono bg-slate-800 px-2 py-1 rounded text-cyan-400">NASDAQ</span></td>
+                                    <td><span class="font-bold text-emerald-400">Compra</span></td>
+                                    <td>Reversión</td>
+                                    <td><span class="badge badge-win">-1.8%</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="overflow-x-auto custom-scroll">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="border-b border-slate-800 text-[11px] uppercase text-slate-500 bg-slate-950/40">
-                            <th class="p-3">Fecha</th>
-                            <th class="p-3">Activo</th>
-                            <th class="p-3">Resultado</th>
-                            <th class="p-3">Estado</th>
-                            <th class="p-3">Confluencias Activadas</th>
-                            <th class="p-3 text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="trades-table-body" class="text-xs divide-y divide-slate-800/60">
-                        </tbody>
-                </table>
-            </div>
-        </section>
-
+    <!-- MODAL AGREGAR TRADE -->
+    <div id="add-trade-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
+            <h2 class="text-2xl font-bold text-emerald-400 mb-6">Nuevo Trade</h2>
+            <form onsubmit="saveTrade(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-400 mb-2">Fecha</label>
+                    <input type="date" id="form-date" class="trading-form-input w-full" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-400 mb-2">Activo</label>
+                    <select id="form-asset" class="trading-form-input w-full">
+                        <option>NASDAQ</option>
+                        <option>ES (S&P 500)</option>
+                        <option>Ambos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-400 mb-2">Dirección</label>
+                    <select id="form-direction" class="trading-form-input w-full">
+                        <option>Compra</option>
+                        <option>Venta</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-400 mb-2">Estrategia</label>
+                    <select id="form-strategy" class="trading-form-input w-full">
+                        <option>Continuación</option>
+                        <option>Reversión</option>
+                        <option>IFVG</option>
+                        <option>DOL</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-400 mb-2">Resultado (%)</label>
+                    <input type="number" step="0.1" id="form-result" class="trading-form-input w-full" placeholder="0.00" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-400 mb-2">Emoción</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" class="emotion-tag" onclick="toggleEmotion(this)">Confianza</button>
+                        <button type="button" class="emotion-tag" onclick="toggleEmotion(this)">Disciplina</button>
+                        <button type="button" class="emotion-tag" onclick="toggleEmotion(this)">FOMO</button>
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg">Guardar</button>
+                    <button type="button" onclick="toggleAddTrade()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded-lg">Cancelar</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
-        // --- 1. CONFIGURACIÓN COMPLETA DE CONFLUENCIAS ---
-        const CONFLUENCIAS_CONFIG = {
-            ifvg_fvg_5m_sp_15m: { key: "ifvg_fvg_5m_sp_15m", label: "IFVG en FVG de 5m patrocinado por 15m", description: "Inversion Fair Value Gap en FVG de 5 minutos con patrocinio de 15m.", categoria: "FVG / IFVG" },
-            ifvg_fvg_5m_sp_30m: { key: "ifvg_fvg_5m_sp_30m", label: "IFVG en FVG de 5m patrocinado por 30m+", description: "Inversion Fair Value Gap en FVG de 5 minutos con patrocinio de 30m+.", categoria: "FVG / IFVG" },
-            continuacion_dol_5m_sp_15m: { key: "continuacion_dol_5m_sp_15m", label: "Continuación tras DOL en FVG 5m patrocinado por 15m", description: "Continuación tras Draw on Liquidity en FVG de 5 minutos patrocinado por 15m.", categoria: "Continuación / DOL" },
-            continuacion_dol_5m_sp_30m: { key: "continuacion_dol_5m_sp_30m", label: "Continuación tras DOL en FVG 5m patrocinado por 30m+", description: "Continuación tras Draw on Liquidity en FVG de 5 minutos patrocinado por 30m+.", categoria: "Continuación / DOL" },
-            continuacion_dol_15m: { key: "continuacion_dol_15m", label: "Continuación una vez tomado el DOL en FVG de 15m", description: "Entrada en continuación tras tomar el DOL en FVG de 15 minutos.", categoria: "Continuación / DOL" },
-            manipulacion_real: { key: "manipulacion_real", label: "Manipulación real", description: "Confirmación de manipulación institucional real en el precio.", categoria: "Análisis Algorítmico" },
-            sin_manipulacion_real: { key: "sin_manipulacion_real", label: "Sin manipulación real", description: "Desplazamiento orgánico sin manipulación real.", categoria: "Análisis Algorítmico" },
-            ambos_activos_zona_reaccion: { key: "ambos_activos_zona_reaccion", label: "Ambos activos en zona de reacción", description: "Tanto NQ como ES están en zona operativa simultáneamente.", categoria: "Correlación de Activos" },
-            solo_nq_zona_reaccion: { key: "solo_nq_zona_reaccion", label: "Solo NQ en zona de reacción", description: "Únicamente el Nasdaq se encuentra en zona.", categoria: "Correlación de Activos" },
-            solo_es_zona_reaccion: { key: "solo_es_zona_reaccion", label: "Solo ES en zona de reacción", description: "Únicamente el S&P500 se encuentra en zona.", categoria: "Correlación de Activos" },
-            solo_nq_zona_reaccion_smt: { key: "solo_nq_zona_reaccion_smt", label: "Solo NQ en zona de reacción + SMT", description: "NQ en zona con divergencia SMT frente a ES.", categoria: "Divergencia SMT" },
-            solo_es_zona_reaccion_smt: { key: "solo_es_zona_reaccion_smt", label: "Solo ES en zona de reacción + SMT", description: "ES en zona con divergencia SMT frente a NQ.", categoria: "Divergencia SMT" },
-            be_fvg_5m_sin_patrocinio: { key: "be_fvg_5m_sin_patrocinio", label: "BE en FVG 5m sin patrocinio", description: "Breakeven en FVG de 5 minutos sin patrocinio de HTF (CISD).", categoria: "FVG / IFVG" }
-        };
-
-        // --- 2. CONFIGURACIÓN DINÁMICA DEL MANIFIESTO PWA ---
+        // PWA MANIFEST
         const manifestObj = {
-            "short_name": "TradingJournal",
-            "name": "Trading Journal & Metrics Dashboard",
+            "short_name": "TuDashboard",
+            "name": "TuDashboard - Trading Metrics",
             "icons": [{
-                "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230f172a'/><path d='M120 380 V 220 H 170 V 380 Z' fill='%2310b981'/><path d='M230 380 V 140 H 280 V 380 Z' fill='%236366f1'/><path d='M340 380 V 280 H 390 V 380 Z' fill='%23f43f5e'/></svg>",
+                "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><rect fill='%230a0e27' width='512' height='512'/><text x='256' y='300' font-size='250' text-anchor='middle' font-family='Arial'>📊</text></svg>",
                 "type": "image/svg+xml",
                 "sizes": "512x512",
                 "purpose": "any maskable"
             }],
             "start_url": ".",
-            "background_color": "#0b0f19",
-            "theme_color": "#0b0f19",
+            "background_color": "#0a0e27",
+            "theme_color": "#00ff88",
             "display": "standalone",
             "orientation": "portrait-primary"
         };
         document.getElementById('pwa-manifest').setAttribute('href', 'data:application/json;base64,' + btoa(JSON.stringify(manifestObj)));
 
-        // --- 3. REGISTRO DEL SERVICE WORKER VÍA INLINE ---
+        // SERVICE WORKER
         if ('serviceWorker' in navigator) {
             const swCode = `
-                const CACHE_NAME = 'trading-journal-cache-v1';
-                self.addEventListener('install', (e) => {
-                    self.skipWaiting();
-                });
-                self.addEventListener('activate', (e) => {
-                    e.waitUntil(clients.claim());
-                });
-                self.addEventListener('fetch', (e) => {
-                    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-                });
+                const CACHE_NAME = 'tudashboard-v1';
+                self.addEventListener('install', e => self.skipWaiting());
+                self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+                self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
             `;
             const blob = new Blob([swCode], { type: 'application/javascript' });
-            navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(err => console.log("SW Error", err));
+            navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(err => console.log("SW:", err));
         }
 
-        // --- 4. LÓGICA DE INSTALACIÓN (BOTÓN INTERFAZ) ---
+        // PWA INSTALL
         let defferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
+        window.addEventListener('beforeinstallprompt', e => {
             e.preventDefault();
             defferredPrompt = e;
             document.getElementById('btn-install-pwa').classList.remove('hidden');
         });
-
         document.getElementById('btn-install-pwa').addEventListener('click', async () => {
             if (defferredPrompt) {
                 defferredPrompt.prompt();
-                const { outcome } = await defferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    document.getElementById('btn-install-pwa').classList.add('hidden');
-                }
                 defferredPrompt = null;
             }
         });
 
-        // --- 5. LOGICA DEL JOURNAL (Métricas, Calendario Real sin Días Corridos, CRUD completo) ---
-        let trades = JSON.parse(localStorage.getItem('app_pwa_journal_data')) || [];
-        let cursorCalendario = new Date();
+        // DATA
+        let trades = JSON.parse(localStorage.getItem('trades_data')) || [
+            { date: "2026-06-09", asset: "NASDAQ", direction: "Compra", strategy: "Continuación", result: 1.8, emotion: "Confianza" },
+            { date: "2026-06-09", asset: "NASDAQ", direction: "Venta", strategy: "Continuación", result: 0.8, emotion: "Disciplina" },
+            { date: "2026-06-08", asset: "NASDAQ", direction: "Compra", strategy: "Reversión", result: -1.8, emotion: "FOMO" }
+        ];
 
-        document.getElementById('current-date-display').innerText = new Date().toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' });
-        document.getElementById('trade-date').value = new Date().toISOString().split('T')[0];
+        // INIT
+        document.getElementById('form-date').valueAsDate = new Date();
+        updateDashboard();
+        initCharts();
 
-        function construirFormularioConfluencias() {
-            const container = document.getElementById('confluencias-checkboxes');
-            const selectorFiltro = document.getElementById('filter-confluencia');
-            container.innerHTML = '';
-
-            const categorias = {};
-            for (let key in CONFLUENCIAS_CONFIG) {
-                const conf = CONFLUENCIAS_CONFIG[key];
-                if (!categorias[conf.categoria]) categorias[conf.categoria] = [];
-                categorias[conf.categoria].push(conf);
-            }
-
-            for (let catName in categorias) {
-                const headerCat = document.createElement('div');
-                headerCat.className = "text-[9px] font-black text-indigo-500 uppercase tracking-widest mt-3 mb-1 border-b border-slate-900 pb-0.5";
-                headerCat.innerText = catName;
-                container.appendChild(headerCat);
-
-                categorias[catName].forEach(item => {
-                    const labelNode = document.createElement('label');
-                    labelNode.className = "flex items-start gap-2 p-1.5 hover:bg-slate-800 rounded-md cursor-pointer text-[11px] text-slate-300 transition-colors";
-                    labelNode.title = item.description;
-                    labelNode.innerHTML = `
-                        <input type="checkbox" value="${item.key}" class="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-950 border-slate-800">
-                        <span class="font-medium text-slate-300">${item.label}</span>
-                    `;
-                    container.appendChild(labelNode);
-
-                    const optionNode = document.createElement('option');
-                    optionNode.value = item.key;
-                    optionNode.innerText = `[${item.categoria}] ${item.label}`;
-                    selectorFiltro.appendChild(optionNode);
-                });
-            }
+        function toggleAddTrade() {
+            document.getElementById('add-trade-modal').classList.toggle('hidden');
         }
 
-        function renderizarCalendario() {
-            const grid = document.getElementById('calendar-grid');
-            grid.innerHTML = '';
-            const anyo = cursorCalendario.getFullYear();
-            const mes = cursorCalendario.getMonth();
-
-            document.getElementById('calendar-month-year').innerText = cursorCalendario.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-
-            const primerDiaSemana = new Date(anyo, mes, 1).getDay();
-            const totalDiasMes = new Date(anyo, mes + 1, 0).getDate();
-
-            for (let i = 0; i < primerDiaSemana; i++) {
-                const celdaVacia = document.createElement('div');
-                celdaVacia.className = "bg-slate-950/40 h-12 rounded-lg border border-slate-900/40";
-                grid.appendChild(celdaVacia);
-            }
-
-            for (let dia = 1; dia <= totalDiasMes; dia++) {
-                const celdaDia = document.createElement('div');
-                celdaDia.className = "bg-slate-950 border border-slate-800/80 p-1 h-12 rounded-lg flex flex-col justify-between transition-all hover:border-slate-600 relative";
-                
-                const txtNumero = document.createElement('span');
-                txtNumero.className = "text-[10px] font-bold text-slate-500";
-                txtNumero.innerText = dia;
-                celdaDia.appendChild(txtNumero);
-
-                const strMes = String(mes + 1).padStart(2, '0');
-                const strDia = String(dia).padStart(2, '0');
-                const fechaFiltroKey = `${anyo}-${strMes}-${strDia}`;
-
-                const operacionesDelDia = trades.filter(t => t.date === fechaFiltroKey);
-
-                if (operacionesDelDia.length > 0) {
-                    const dotWrapper = document.createElement('div');
-                    dotWrapper.className = "flex gap-1 flex-wrap overflow-hidden mb-0.5";
-                    
-                    operacionesDelDia.forEach(op => {
-                        const marcador = document.createElement('span');
-                        marcador.className = "w-2 h-2 rounded-full inline-block cursor-help";
-                        marcador.title = `Activo: ${op.asset} | R: ${op.result}`;
-                        
-                        const resNum = parseFloat(op.result);
-                        if (resNum === 0) {
-                            marcador.classList.add('bg-blue-500');
-                        } else if (resNum > 0) {
-                            marcador.classList.add('bg-emerald-500');
-                        } else {
-                            marcador.classList.add('bg-rose-500');
-                        }
-                        dotWrapper.appendChild(marcador);
-                    });
-                    celdaDia.appendChild(dotWrapper);
-                }
-                grid.appendChild(celdaDia);
-            }
+        function toggleEmotion(el) {
+            el.classList.toggle('selected');
         }
 
-        function cambiarMes(valor) {
-            cursorCalendario.setMonth(cursorCalendario.getMonth() + valor);
-            renderizarCalendario();
-        }
-
-        function actualizarDashboardMetricas() {
-            let ganados = 0, perdidos = 0, breakeven = 0;
-
-            trades.forEach(t => {
-                const val = parseFloat(t.result);
-                if (val === 0) {
-                    breakeven++;
-                } else if (val > 0) {
-                    ganados++;
-                } else {
-                    perdidos++;
-                }
-            });
-
-            const total = trades.length;
-            const winRate = total > 0 ? ((ganados / total) * 100).toFixed(1) : 0;
-
-            document.getElementById('stat-total').innerText = total;
-            document.getElementById('stat-wins').innerText = ganados;
-            document.getElementById('stat-losses').innerText = perdidos;
-            document.getElementById('stat-be').innerText = breakeven;
-            document.getElementById('stat-wr').innerText = `${winRate}%`;
-        }
-
-        function guardarTrade(e) {
+        function saveTrade(e) {
             e.preventDefault();
-            const id = document.getElementById('trade-id').value;
-            const date = document.getElementById('trade-date').value;
-            const asset = document.getElementById('trade-asset').value;
-            const result = parseFloat(document.getElementById('trade-result').value);
-
-            const boxes = document.querySelectorAll('#confluencias-checkboxes input[type="checkbox"]:checked');
-            const confluenciasKeys = Array.from(boxes).map(b => b.value);
-
-            if (id) {
-                trades = trades.map(t => t.id === id ? { id, date, asset, result, confluencias: confluenciasKeys } : t);
-            } else {
-                const nuevoRegistro = {
-                    id: 't_' + Date.now(),
-                    date,
-                    asset,
-                    result,
-                    confluencias: confluenciasKeys
-                };
-                trades.push(nuevoRegistro);
-            }
-
-            localStorage.setItem('app_pwa_journal_data', JSON.stringify(trades));
-            cancelarEdicion();
-            renderGlobal();
+            const trade = {
+                date: document.getElementById('form-date').value,
+                asset: document.getElementById('form-asset').value,
+                direction: document.getElementById('form-direction').value,
+                strategy: document.getElementById('form-strategy').value,
+                result: parseFloat(document.getElementById('form-result').value),
+                emotion: Array.from(document.querySelectorAll('#add-trade-modal .emotion-tag.selected')).map(el => el.textContent).join(', ')
+            };
+            trades.unshift(trade);
+            localStorage.setItem('trades_data', JSON.stringify(trades));
+            toggleAddTrade();
+            updateDashboard();
+            document.querySelector('form').reset();
         }
 
-        function iniciarEdicion(id) {
-            const target = trades.find(t => t.id === id);
-            if (!target) return;
+        function updateDashboard() {
+            const total = trades.length;
+            const wins = trades.filter(t => t.result > 0).length;
+            const losses = trades.filter(t => t.result < 0).length;
+            const be = trades.filter(t => t.result === 0).length;
+            const winRate = ((wins / total) * 100).toFixed(1);
+            const totalPnL = trades.reduce((a, b) => a + b.result, 0);
 
-            document.getElementById('trade-id').value = target.id;
-            document.getElementById('trade-date').value = target.date;
-            document.getElementById('trade-asset').value = target.asset;
-            document.getElementById('trade-result').value = target.result;
+            document.getElementById('total-trades').textContent = total;
+            document.getElementById('win-rate').textContent = winRate + '%';
+            document.getElementById('factor-ganancia').textContent = (wins / (losses || 1)).toFixed(2);
+            document.getElementById('net-profit').textContent = totalPnL.toFixed(1) + '%';
 
-            const checkboxes = document.querySelectorAll('#confluencias-checkboxes input[type="checkbox"]');
-            checkboxes.forEach(box => {
-                box.checked = target.confluencias.includes(box.value);
-            });
-
-            document.getElementById('form-title').firstElementChild.innerText = "Modificar Trade";
-            document.getElementById('btn-submit').innerText = "Confirmar Cambios";
-            document.getElementById('btn-cancel-edit').classList.remove('hidden');
+            updateTradesList();
+            updateCharts();
         }
 
-        function eliminarTrade(id) {
-            if (confirm('¿Confirmas la eliminación definitiva de este trade?')) {
-                trades = trades.filter(t => t.id !== id);
-                localStorage.setItem('app_pwa_journal_data', JSON.stringify(trades));
-                renderGlobal();
-            }
+        function updateTradesList() {
+            const list = document.getElementById('trades-list');
+            list.innerHTML = trades.slice(0, 10).map(t => `
+                <tr class="trade-row">
+                    <td class="py-3">${t.date}</td>
+                    <td><span class="font-mono bg-slate-800 px-2 py-1 rounded text-cyan-400">${t.asset}</span></td>
+                    <td><span class="font-bold ${t.direction === 'Compra' ? 'text-emerald-400' : 'text-red-400'}">${t.direction}</span></td>
+                    <td>${t.strategy}</td>
+                    <td><span class="badge ${t.result > 0 ? 'badge-win' : t.result < 0 ? 'badge-loss' : 'badge-be'}">${t.result > 0 ? '+' : ''}${t.result}%</span></td>
+                </tr>
+            `).join('');
         }
 
-        function cancelarEdicion() {
-            document.getElementById('trade-id').value = '';
-            document.getElementById('trade-form').reset();
-            document.getElementById('form-title').firstElementChild.innerText = "Registrar Operación";
-            document.getElementById('btn-submit').innerText = "Guardar Operación";
-            document.getElementById('btn-cancel-edit').classList.add('hidden');
-            const checkboxes = document.querySelectorAll('#confluencias-checkboxes input[type="checkbox"]');
-            checkboxes.forEach(b => b.checked = false);
-        }
+        let equityChart, distributionChart;
 
-        function renderizarTablaHistorial() {
-            const body = document.getElementById('trades-table-body');
-            body.innerHTML = '';
-            const filtroActivo = document.getElementById('filter-confluencia').value;
-
-            let coleccionFiltrada = trades;
-            if (filtroActivo) {
-                coleccionFiltrada = trades.filter(t => t.confluencias && t.confluencias.includes(filtroActivo));
-            }
-
-            coleccionFiltrada.sort((x, y) => new Date(y.date) - new Date(x.date));
-
-            if (coleccionFiltrada.length === 0) {
-                body.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-600 italic">No hay trades en el historial.</td></tr>`;
-                return;
-            }
-
-            coleccionFiltrada.forEach(t => {
-                const row = document.createElement('tr');
-                row.className = "hover:bg-slate-900/40 transition-colors border-b border-slate-900";
-                const valorR = parseFloat(t.result);
-                let htmlBadge = '';
-                
-                if (valorR === 0) {
-                    htmlBadge = `<span class="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-blue-900/30">Breakeven</span>`;
-                } else if (valorR > 0) {
-                    htmlBadge = `<span class="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-emerald-900/30">Ganador</span>`;
-                } else {
-                    htmlBadge = `<span class="bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-rose-900/30">Perdedor</span>`;
+        function initCharts() {
+            // EQUITY CHART
+            const ctx1 = document.getElementById('equityChart').getContext('2d');
+            equityChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 33}, (_, i) => i + 1),
+                    datasets: [{
+                        label: 'Equity',
+                        data: Array.from({length: 33}, (_, i) => Math.random() * 5 - 2).reduce((acc, val, i) => [...acc, (acc[i-1] || 0) + val], []),
+                        borderColor: '#00ff88',
+                        backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#00ff88'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(71, 85, 105, 0.1)' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    }
                 }
+            });
 
-                const htmlConfluencias = t.confluencias && t.confluencias.length > 0
-                    ? t.confluencias.map(cKey => {
-                        const confObj = CONFLUENCIAS_CONFIG[cKey];
-                        return confObj ? `<span class="bg-slate-800 text-slate-300 text-[10px] px-2 py-0.5 rounded border border-slate-700 inline-block max-w-xs truncate" title="${confObj.description}">${confObj.label}</span>` : '';
-                    }).join(' ')
-                    : `<span class="text-slate-600 italic text-[11px]">Sin confluencias</span>`;
+            // DISTRIBUTION PIE
+            const ctx2 = document.getElementById('distributionChart').getContext('2d');
+            const wins = trades.filter(t => t.result > 0).length;
+            const losses = trades.filter(t => t.result < 0).length;
+            const be = trades.filter(t => t.result === 0).length;
 
-                row.innerHTML = `
-                    <td class="p-3 font-semibold text-slate-400">${t.date}</td>
-                    <td class="p-3"><span class="bg-indigo-950/60 text-indigo-300 border border-indigo-900/50 px-2 py-0.5 rounded font-mono text-[11px]">${t.asset}</span></td>
-                    <td class="p-3 font-bold ${valorR > 0 ? 'text-emerald-400' : valorR < 0 ? 'text-rose-400' : 'text-blue-400'}">${valorR > 0 ? '+' : ''}${t.result} R</td>
-                    <td class="p-3">${htmlBadge}</td>
-                    <td class="p-3"><div class="flex flex-wrap gap-1 max-w-md">${htmlConfluencias}</div></td>
-                    <td class="p-3 text-right space-x-1 whitespace-nowrap">
-                        <button onclick="iniciarEdicion('${t.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded text-[11px] font-medium cursor-pointer">Editar</button>
-                        <button onclick="eliminarTrade('${t.id}')" class="bg-rose-950/40 hover:bg-rose-900 text-rose-400 hover:text-white px-2.5 py-1 rounded text-[11px] font-medium cursor-pointer">Eliminar</button>
-                    </td>
-                `;
-                body.appendChild(row);
+            distributionChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ganadores', 'Perdedores', 'Breakeven'],
+                    datasets: [{
+                        data: [wins, losses, be],
+                        backgroundColor: ['#10b981', '#ef4444', '#3b82f6'],
+                        borderColor: '#0a0e27',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 12 } } } }
+                }
             });
         }
 
-        function renderGlobal() {
-            actualizarDashboardMetricas();
-            renderizarCalendario();
-            renderizarTablaHistorial();
+        function updateCharts() {
+            const wins = trades.filter(t => t.result > 0).length;
+            const losses = trades.filter(t => t.result < 0).length;
+            const be = trades.filter(t => t.result === 0).length;
+            distributionChart.data.datasets[0].data = [wins, losses, be];
+            distributionChart.update();
         }
-
-        construirFormularioConfluencias();
-        renderGlobal();
     </script>
 </body>
 </html>
